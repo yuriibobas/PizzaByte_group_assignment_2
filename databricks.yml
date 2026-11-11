@@ -1,0 +1,38 @@
+bundle:
+  name: pizzabyte-airbnb-etl
+
+sync:
+  exclude:
+    - notebooks/00_workspace_check.ipynb
+    - data/listings_Santa_Clara_County.csv.gz
+    - tests/**
+
+resources:
+  jobs:
+    airbnb_etl:
+      name: PizzaByte - city ETL
+      max_concurrent_runs: 1
+      parameters:
+        - name: city
+          default: Los_Angeles
+        - name: catalog
+          default: workspace
+        - name: schema
+          default: airbnb
+        - name: repo_root
+          default: ${workspace.file_path}
+        - name: source_dir
+          default: ${workspace.file_path}/data
+        - name: allow_city_c
+          default: "false"
+        - name: verify_rerun
+          default: "false"
+      tasks:
+        - task_key: etl_city
+          notebook_task:
+            notebook_path: ./notebooks/etl_pipeline.ipynb
+      # No cluster configuration: the notebook task uses serverless compute.
+
+targets:
+  dev:
+    default: true
