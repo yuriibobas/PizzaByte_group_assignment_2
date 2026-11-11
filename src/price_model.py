@@ -12,7 +12,7 @@ Everything that has to be reused lives here, so the notebook only calls function
 * ``save_model`` / ``load_model``.
 
 The input is a pandas DataFrame with one row per listing and the columns in REQUIRED_COLUMNS
-(the names used in the Silver / typed table). Nothing here depends on Spark or on a city name.
+(``load_listings_csv`` builds it from the raw files; a Silver table with the same column names works too). Nothing here depends on Spark or on a city name.
 """
 from __future__ import annotations
 
@@ -114,6 +114,66 @@ def assert_no_leakage(features: Iterable[str] = FEATURES) -> None:
     grouped = sorted(c for cols in FEATURE_GROUPS.values() for c in cols)
     if grouped != sorted(FEATURES):
         raise AssertionError("FEATURE_GROUPS and FEATURES do not contain the same columns")
+
+
+# --------------------------------------------------------------------------- loading from the raw files
+_RAW_COLUMNS = [
+    "id", "room_type", "property_type", "neighbourhood_cleansed", "price", "accommodates", "bedrooms", "beds",
+    "bathrooms_text", "amenities", "minimum_nights", "host_is_superhost", "host_listings_count",
+    "calculated_host_listings_count", "hosts_time_as_host_years", "license", "latitude", "longitude",
+]
+
+
+def _type_raw(r: pd.DataFrame) -> pd.DataFrame:
+    """Raw Inside Airbnb columns (as read from the CSV) to the typed columns in REQUIRED_COLUMNS."""
+    def col(name: str) -> pd.Series:
+        return r[name] if name in r.columns else pd.Series(np.nan, index=r.index)
+
+    def n_amenities(x):
+        try:
+            return float(len(json.loads(x)))
+        except (TypeError, ValueError):
+            return np.nan
+
+    out = pd.DataFrame(index=r.index)
+    out["city"] = r["city"]
+    out["id"] = r["id"].astype("int64")
+    for c in ("room_type", "property_type", "neighbourhood_cleansed"):
+        out[c] = col(c)
+    out["price"] = pd.to_numeric(col("price").astype(str).str.replace(r"[$,]", "", regex=True), errors="coerce").astype("float64")
+
+    has_text = col("bathrooms_text").notna()
+    text = col("bathrooms_text").astype(str).str.lower()
+    digits = pd.to_numeric(text.str.extract(r"(\d+(?:\.\d+)?)")[0], errors="coerce")
+    digits = digits.where(~(text.str.contains("half") & digits.isna()), 0.5)          # "Half-bath" = 0.5
+    out["bathrooms_num"] = digits.where(has_text)
+    out["bathroom_shared"] = text.str.contains("shared").astype(float).where(has_text)
+    out["n_amenities"] = col("amenities").map(n_amenities)
+    out["host_is_superhost"] = col("host_is_superhost").map({"t": 1.0, "f": 0.0})
+    out["has_license"] = col("license").notna().astype(float)
+    for c in ("accommodates", "bedrooms", "beds", "minimum_nights", "host_listings_count",
+              "calculated_host_listings_count", "hosts_time_as_host_years", "latitude", "longitude"):
+        out[c] = pd.to_numeric(col(c), errors="coerce").astype("float64")
+    return out
+
+
+def load_listings_csv(data_dir: str, cities: Sequence[str], file_pattern: str = "listings_{city}.csv.gz") -> pd.DataFrame:
+    """Read ``listings_<city>.csv.gz`` (or .csv) for the given cities and return the typed columns the model needs.
+
+    Only the needed columns are read. Only the cities listed are opened.
+    """
+    frames = []
+    for city in cities:
+        path = os.path.join(data_dir, file_pattern.format(city=city))
+        if not os.path.exists(path) and path.endswith(".gz"):
+            path = path[:-3]
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"{path} not found")
+        header = pd.read_csv(path, nrows=0).columns
+        raw = pd.read_csv(path, usecols=[c for c in _RAW_COLUMNS if c in header], low_memory=False)
+        raw["city"] = city
+        frames.append(_type_raw(raw))
+    return pd.concat(frames, ignore_index=True)
 
 
 # --------------------------------------------------------------------------- features
@@ -312,6 +372,21 @@ def metrics_table(scored: pd.DataFrame, pred_cols: Dict[str, str], scopes: Dict[
         for name, col in pred_cols.items():
             rows.append({"scope": scope, "model": name, **regression_metrics(d[y_col], d[col])})
     return pd.DataFrame(rows)
+
+
+def metrics_to_markdown(results: pd.DataFrame, meta: Optional[dict] = None, digits: int = 2) -> str:
+    """The output of ``metrics_table`` as a Markdown table (for the README or a results file)."""
+    cols = ["scope", "model", "n", "mae", "median_ae", "rmse", "mape_pct", "mean_error", "r2_log"]
+    lines = []
+    if meta:
+        lines += [f"Model: {meta.get('model_name', '')}, chosen candidate: {meta.get('chosen_candidate', '')}, trained at {meta.get('trained_at', '')}", ""]
+    lines.append("| " + " | ".join(cols) + " |")
+    lines.append("|" + "|".join(["---"] * len(cols)) + "|")
+    for _, row in results[cols].iterrows():
+        cells = [str(row[c]) if c in ("scope", "model") else (str(int(row[c])) if c == "n" else f"{row[c]:.{digits}f}") for c in cols]
+        lines.append("| " + " | ".join(cells) + " |")
+    lines += ["", "mae, median_ae, rmse and mean_error are USD per night on the held-out test listings; mape_pct is a percentage; r2_log is R-squared on log price."]
+    return "\n".join(lines) + "\n"
 
 
 def mae_by(scored: pd.DataFrame, by: List[str], pred_cols: Dict[str, str], y_col: str = "actual_price") -> pd.DataFrame:
