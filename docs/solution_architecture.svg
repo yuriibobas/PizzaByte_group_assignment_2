@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title description">
+  <title id="title">PizzaByte - Airbnb pricing lakehouse architecture</title>
+  <desc id="description">The city-parameterised ETL stages Los Angeles and San Francisco archives in bronze, cleans listings in silver and publishes approved model features in gold. A price model publishes gold predictions. A separate analytics-publication step reads silver listings and predictions, builds five gold tables and serves the dashboard and Genie. Santa Clara County stays unseen until the A/B pipeline and model are frozen.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9 Z" fill="#718096"/></marker>
+    <marker id="blue-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9 Z" fill="#4167ba"/></marker>
+    <marker id="teal-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9 Z" fill="#358578"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #1d2b3a; }
+      .eyebrow { font-size: 14px; font-weight: 700; letter-spacing: 1.8px; }
+      .card-title { font-size: 27px; font-weight: 700; }
+      .body { font-size: 19px; fill: #4a596b; }
+      .small { font-size: 17px; fill: #5c6b7d; }
+      .mono { font-family: 'Courier New', monospace; font-size: 18px; fill: #4a596b; }
+      .connector { fill: none; stroke: #718096; stroke-width: 2.5; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="#f5f7fb"/>
+  <text x="48" y="65" font-size="43" font-weight="700">PizzaByte</text>
+  <text x="48" y="107" font-size="25">Airbnb pricing lakehouse</text>
+  <rect x="1115" y="45" width="437" height="52" rx="26" fill="#e8eef7"/>
+  <text x="1333.5" y="77" text-anchor="middle" font-size="16" font-weight="700" letter-spacing="0.8">SERVERLESS / CALIFORNIA / USD</text>
+  <rect x="360" y="161" width="1210" height="317" rx="23" fill="#eef2f8" stroke="#c8d3e0" stroke-width="1.5" stroke-dasharray="7 6"/>
+  <text x="385" y="195" class="eyebrow">3.3 PARAMETERISED ETL</text>
+  <text x="1544" y="195" class="small" text-anchor="end">One Databricks Job · city parameter · same code</text>
+
+  <!-- ETL: left to right. -->
+  <g id="sources">
+    <rect x="48" y="220" width="280" height="230" rx="17" fill="#fff" stroke="#d5dde8" stroke-width="1.5"/>
+    <text x="72" y="251" class="eyebrow">INPUT</text>
+    <text x="72" y="287" class="card-title">Source archives</text>
+    <text x="72" y="328" class="body">Los Angeles (A)</text>
+    <text x="72" y="359" class="body">San Francisco (B)</text>
+    <text x="72" y="400" class="mono">listings.csv.gz</text>
+    <text x="72" y="430" class="small">Inside Airbnb · CC BY 4.0</text>
+  </g>
+  <g id="bronze">
+    <rect x="382" y="220" width="340" height="230" rx="17" fill="#fff" stroke="#d9bd8a" stroke-width="1.5"/>
+    <path d="M399 220 H705 Q722 220 722 237 V244 H382 V237 Q382 220 399 220 Z" fill="#f3e5cd"/>
+    <text x="406" y="275" class="eyebrow">BRONZE</text>
+    <text x="406" y="311" class="card-title">Preserve the source</text>
+    <text x="406" y="352" class="body">Unchanged .csv.gz files</text>
+    <text x="406" y="382" class="body">Unity Catalog volume</text>
+    <text x="406" y="412" class="body">Raw Delta + source lineage</text>
+    <text x="406" y="437" class="small">Strings retained for replay</text>
+  </g>
+  <g id="silver">
+    <rect x="776" y="220" width="340" height="230" rx="17" fill="#fff" stroke="#b8c4d2" stroke-width="1.5"/>
+    <path d="M793 220 H1099 Q1116 220 1116 237 V244 H776 V237 Q776 220 793 220 Z" fill="#dfe6ef"/>
+    <text x="800" y="275" class="eyebrow">SILVER</text>
+    <text x="800" y="311" class="card-title">Clean &amp; type</text>
+    <text x="800" y="352" class="body">One listing per (city, id)</text>
+    <text x="800" y="382" class="body">Typed + derived fields</text>
+    <text x="800" y="412" class="body">Missingness + quality flags</text>
+    <text x="800" y="437" class="small">Unpriced listings retained</text>
+  </g>
+  <g id="gold">
+    <rect x="1170" y="220" width="382" height="230" rx="17" fill="#fff" stroke="#d6c476" stroke-width="1.5"/>
+    <path d="M1187 220 H1535 Q1552 220 1552 237 V244 H1170 V237 Q1170 220 1187 220 Z" fill="#f4ebc2"/>
+    <text x="1194" y="275" class="eyebrow">GOLD · MODEL FEATURES</text>
+    <text x="1194" y="311" class="card-title">Approved model inputs</text>
+    <text x="1194" y="352" class="body">Leakage-safe feature projection</text>
+    <text x="1194" y="382" class="body">One listing per (city, id)</text>
+    <text x="1194" y="412" class="body">No learned preprocessing</text>
+    <text x="1194" y="437" class="small">Target kept separate from features</text>
+  </g>
+  <path class="connector" d="M328 335 H378"/>
+  <path class="connector" d="M722 335 H772"/>
+  <path class="connector" d="M1116 335 H1166"/>
+
+  <!-- Silver and predictions feed the separately owned analytics publication. -->
+  <path d="M895 450 V506 Q895 520 881 520 H282 Q268 520 268 534 V592" fill="none" stroke="#358578" stroke-width="2.5" marker-end="url(#teal-arrow)"/>
+  <text x="602" y="507" text-anchor="middle" font-size="18">Silver listings</text>
+  <path d="M1360 450 V592" fill="none" stroke="#4167ba" stroke-width="2.5" marker-end="url(#blue-arrow)"/>
+  <text x="1380" y="551" font-size="17">model inputs</text>
+
+  <!-- Scoring and publication: right to left. -->
+  <g id="model">
+    <rect x="1104" y="596" width="448" height="190" rx="17" fill="#edf3ff" stroke="#a5bce6" stroke-width="1.5"/>
+    <text x="1128" y="628" class="eyebrow">MODEL · 3.4</text>
+    <text x="1128" y="663" class="card-title">Price model</text>
+    <text x="1128" y="701" class="body">Train-only fitting + baseline</text>
+    <text x="1128" y="731" class="body">Held-out MAE for A / B</text>
+    <text x="1128" y="761" class="body">Batch predictions for every listing</text>
+  </g>
+  <g id="predictions">
+    <rect x="576" y="596" width="440" height="190" rx="17" fill="#fffbee" stroke="#d6c476" stroke-width="1.5"/>
+    <text x="600" y="628" class="eyebrow">GOLD · predictions</text>
+    <text x="600" y="663" class="card-title">Published predictions</text>
+    <text x="600" y="701" class="body">Actual + baseline + model price</text>
+    <text x="600" y="731" class="body">Listing keys + model version</text>
+    <text x="600" y="761" class="body">Train / test / scoring designation</text>
+  </g>
+  <g id="consumers">
+    <rect x="48" y="596" width="440" height="190" rx="17" fill="#eef8f5" stroke="#9cc9bc" stroke-width="1.5"/>
+    <text x="72" y="628" class="eyebrow">GOLD ANALYTICS · 3.5 / 3.6</text>
+    <text x="72" y="663" class="card-title">Publish &amp; consume</text>
+    <text x="72" y="701" class="body">Listing + city + neighbourhood tables</text>
+    <text x="72" y="731" class="body">Model error + evaluation tables</text>
+    <text x="72" y="761" class="body">AI/BI dashboard + Genie Agent</text>
+  </g>
+  <path d="M1104 692 H1020" fill="none" stroke="#4167ba" stroke-width="2.5" marker-end="url(#blue-arrow)"/>
+  <text x="1062" y="675" text-anchor="middle" font-size="16">score</text>
+  <path class="connector" d="M576 692 H492"/>
+  <text x="534" y="675" text-anchor="middle" font-size="16">join</text>
+  <rect x="48" y="818" width="1504" height="40" rx="10" fill="#fff3df"/>
+  <text x="70" y="844" font-size="17">CITY C · Santa Clara County</text>
+  <text x="370" y="844" font-size="17">Unseen until A/B freeze · First run uses the unchanged pipeline and fitted model</text>
+  <text x="48" y="887" font-size="14">3.2 SOLUTION ARCHITECTURE</text>
+  <text x="1552" y="887" text-anchor="end" font-size="14">Batch lakehouse · Managed Delta tables · Unity Catalog governance</text>
+</svg>
