@@ -53,8 +53,10 @@ NUM_FEATURES = [
     "minimum_nights_capped", "is_monthly_rental",
     "host_is_superhost", "log_host_listings_count", "log_calc_host_listings_count",
     "hosts_time_as_host_years", "has_license",
-    "latitude", "longitude", "dist_to_center_km", "dx_km", "dy_km",
+    "dist_to_center_km", "dx_km", "dy_km",
 ]
+# v2 change (city C, 3.7): the raw "latitude" and "longitude" are no longer features. v1 learned price levels from absolute
+# coordinates and could not transfer to a city outside the A/B coordinate ranges. The city-relative features stay.
 FEATURES = CAT_FEATURES + NUM_FEATURES
 
 # groups used for permutation importance (a group is shuffled as a whole)
@@ -66,7 +68,7 @@ FEATURE_GROUPS = {
     "stay rules": ["minimum_nights_capped", "is_monthly_rental"],
     "host": ["host_is_superhost", "log_host_listings_count", "log_calc_host_listings_count",
              "hosts_time_as_host_years", "has_license"],
-    "location": ["latitude", "longitude", "dist_to_center_km", "dx_km", "dy_km"],
+    "location": ["dist_to_center_km", "dx_km", "dy_km"],
 }
 
 # columns that must never be used to predict price (leakage review, EDA section 14)
@@ -98,9 +100,7 @@ FEATURE_DOC = [
     ("log_calc_host_listings_count", "number", "log(1 + listings of the host in this scrape)", "Host attribute"),
     ("hosts_time_as_host_years", "number", "Years since the host joined", "Host attribute"),
     ("has_license", "0/1", "A licence number is shown", "Listing attribute"),
-    ("latitude", "number", "Latitude", "Location"),
-    ("longitude", "number", "Longitude", "Location"),
-    ("dist_to_center_km", "number", "Distance to the median point of the city's listings", "Location relative to the city, computed from the city's own listings (no price used)"),
+    ("dist_to_center_km", "number", "Distance to the median point of the city's listings", "Location relative to the city, computed from the city's own listings (no price used); the model has no absolute coordinates"),
     ("dx_km", "number", "East-west offset from that point", "Location relative to the city"),
     ("dy_km", "number", "North-south offset from that point", "Location relative to the city"),
 ]
@@ -324,20 +324,21 @@ class PriceModel:
                                               **{**_HGB_DEFAULTS, **self.params})
         return Pipeline([("pre", pre), ("model", model)])
 
-    def _matrix(self, d: pd.DataFrame) -> pd.DataFrame:
-        x = d[FEATURES].copy()
+    def _matrix(self, d: pd.DataFrame, cols: Optional[Sequence[str]] = None) -> pd.DataFrame:
+        # a fitted model always scores with the columns it was fitted on, even if FEATURES is edited later (e.g. for v2)
+        x = d[list(cols or FEATURES)].copy()
         x["property_type"] = x["property_type"].where(x["property_type"].isin(self.top_types_), "Other")
         return x
 
     def fit(self, d: pd.DataFrame) -> "PriceModel":
         d = d[valid_price_mask(d)]
         self.top_types_ = d["property_type"].value_counts().head(self.top_property_types).index.tolist()
-        self.pipeline_ = self._estimator().fit(self._matrix(d), np.log(d[TARGET].to_numpy()))
+        self.pipeline_ = self._estimator().fit(self._matrix(d, FEATURES), np.log(d[TARGET].to_numpy()))
         self.n_train_ = len(d)
         return self
 
     def predict(self, d: pd.DataFrame) -> np.ndarray:
-        return np.exp(self.pipeline_.predict(self._matrix(d)))
+        return np.exp(self.pipeline_.predict(self._matrix(d, list(getattr(self.pipeline_, "feature_names_in_", FEATURES)))))
 
     def describe(self) -> dict:
         return {"kind": self.kind, "params": self.params, "n_train": self.n_train_, "features": FEATURES, "seed": self.seed}
