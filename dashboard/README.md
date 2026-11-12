@@ -16,6 +16,6 @@ City C needs no change to the dashboard: every query groups by city, so it shows
 
 **Still to do after the model run**
 
-- The Model page title is a TODO. Replace it with what the numbers actually say (e.g. by how much the model beats the baseline, and how much worse it is on city C).
-- The titles of the first two pages come from the EDA on A and B. Check they still hold once the pipeline's silver table is in place.
+- The Model page title states the A/B result from the model notebook ($115 against $189 baseline MAE). After the city C run, add what happened on C to it.
+- The titles of the first two pages come from the EDA on A and B. Check them against the published dashboard.
 - The JSON was written by hand and checked against the gold tables with a local Spark run, but not yet imported into Databricks. If a widget looks off after import, fix it in the editor and export the JSON again over this file.
