@@ -1,5 +1,7 @@
 # PizzaByte - Group Assignment 2
 
+**Presentation** [https://canva.link/q0kznfnzrrz3lg9](https://canva.link/q0kznfnzrrz3lg9)
+
 An Inside Airbnb lakehouse on Databricks Free Edition. Region: **California**;
 currency: **USD**. Source: detailed `listings.csv.gz`, Inside Airbnb, CC BY 4.0.
 
