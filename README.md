@@ -73,6 +73,29 @@ Databricks execution evidence consists of the selected-city summary, schema
 and price-class reports, published A/B counts and optional rerun signatures in
 the ETL notebook, together with successful city-parameterised Job runs.
 
+## Genie Agent instructions
+
+Data: Inside Airbnb listings for three California cities, one snapshot per city. One row in gold_listings is one listing. All prices are USD per night.
+
+Cities: "City A" is Los Angeles, "City B" is San Francisco, "City C" is Santa Clara County (the new client, not used to train the model). Filter on city_role ('A', 'B', 'C') when the user says City A/B/C, and on city_name when they name the city. Show city_name in answers, not city.
+
+Prices:
+- price is already NULL for listings with no price or a fake placeholder price. Never filter on price_class to "clean" prices; just ignore NULLs.
+- Use the median, not the average, for prices. Prices are very skewed.
+- Short stays and monthly rentals (stay_type = 'monthly', minimum 28 nights) have different price levels. If the user does not say which, answer for short stays and also give the monthly figure in a separate row. Do not mix them in one number.
+- "Entire home" means room_type = 'Entire home/apt'.
+
+Neighbourhoods: names only exist within one city. Always group by city_name and neighbourhood together. When ranking neighbourhoods by price, only use neighbourhoods with at least 30 priced listings, and say so.
+
+Model:
+- Use gold_model_errors and gold_model_metrics. Filter on is_evaluation = true unless the user asks about training data. These are the listings the model never trained on: the test split of City A and B, and all priced listings of City C (split = 'new_data').
+- If the user does not name a model run, use is_latest_run = true in gold_model_errors (or the highest model_run in gold_model_metrics). price_model_v1 is the model at the end of week 1; a later version (price_model_v2) is the model after the city C changes.
+- error = predicted_price - actual_price. Under-priced means error < 0 (the model suggests less than the listing asks). Over-priced means error > 0.
+- MAE = average of abs_error. The baseline is the median training price for the same room_type and accommodates.
+- For "where" questions about the model, group by city_name and neighbourhood (or room_type) and only keep groups with at least 20 test listings.
+
+Answer style: round prices to whole dollars, state the city and the number of listings behind each figure.
+
 ## Platform and scope
 
 Execution uses Databricks Free Edition serverless compute, Unity Catalog
