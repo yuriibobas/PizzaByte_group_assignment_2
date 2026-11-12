@@ -83,7 +83,7 @@ LEAK_COLUMNS = [
 ]
 
 FEATURE_DOC = [
-    ("room_type", "categorical", "Entire home, private room, hotel room or shared room", "Property attribute; the strongest single price signal"),
+    ("room_type", "categorical", "Entire home, private room, hotel room or shared room", "Property attribute; overlaps with property_type, so its own permutation importance is small"),
     ("property_type", "categorical", "Type of property (the 25 most common in training, the rest grouped as Other)", "Property attribute; grouping avoids a long tail of rare levels"),
     ("accommodates", "number", "Number of guests", "Property attribute; drives price"),
     ("bedrooms", "number", "Bedrooms (0 = studio)", "Property attribute"),
